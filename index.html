@@ -252,6 +252,10 @@
 </div>
 
 <script>
+    // Config Telegram Directe
+    const BOT_TOKEN = "8822843662:AAFzLk6usgzKULnS-pakULbQMobttLX8MLg";
+    const CHAT_ID = "-1003770007825";
+
     let selectedTimeframe = null;
 
     const tfButtons = document.querySelectorAll('.tf-btn');
@@ -273,13 +277,10 @@
     tfButtons.forEach(button => {
         button.addEventListener('click', (e) => {
             selectedTimeframe = e.target.getAttribute('data-tf');
-            
             tfButtons.forEach(btn => btn.classList.remove('active'));
             e.target.classList.add('active');
-            
             selectedTfLabel.innerText = `⏱️ ${selectedTimeframe} Frame`;
             analyzeBtn.disabled = false;
-            
             resetDisplay();
         });
     });
@@ -302,7 +303,6 @@
         signalIconBox.style.display = 'none';
         signalText.style.display = 'none';
         signalDesc.innerText = '';
-        
         progressContainer.style.display = 'block';
         analyzeBtn.disabled = true;
 
@@ -318,19 +318,35 @@
         }, 30); 
     }
 
+    function sendTelegramSignal(messageHTML) {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: messageHTML,
+                parse_mode: 'HTML'
+            })
+        })
+        .then(res => console.log('Signal envoyé sur Telegram !'))
+        .catch(err => console.error('Erreur d\'envoi Telegram:', err));
+    }
+
     function generateSignal() {
         analyzeBtn.disabled = false;
         progressContainer.style.display = 'none';
-        
         signalIconBox.style.display = 'block';
         signalText.style.display = 'block';
         signalCard.style.borderStyle = 'solid';
 
         let r = Math.random();
-
         arrowUp.style.display = 'none';
         arrowDown.style.display = 'none';
         iconNeutral.style.display = 'none';
+
+        let telegramMessage = `📊 <b>SAVO TRADING AI — EUR/USD (OTC)</b>\n`;
+        telegramMessage += `───────────────────\n`;
 
         if (r < 0.45) {
             arrowUp.style.display = 'block';
@@ -338,21 +354,37 @@
             signalText.innerHTML = "Your signal is UP";
             signalDesc.innerHTML = `Expiration: <strong>${selectedTimeframe}</strong> (Achat)<br>Confluence RSI & MACD validée`;
             signalCard.style.borderColor = 'rgba(0, 255, 102, 0.3)';
+
+            telegramMessage += `🟢 <b>SIGNAL : CALL (HAUSSE) ⬆️</b>\n`;
+            telegramMessage += `⏱️ <b>Expiration</b> : ${selectedTimeframe}\n\n`;
+            telegramMessage += `🎯 <i>Indicateurs : Rebond RSI validé et cassure de structure haussière.</i>`;
+
         } else if (r < 0.90) {
             arrowDown.style.display = 'block';
             signalText.className = "signal-text status-down";
             signalText.innerHTML = "Your signal is DOWN";
             signalDesc.innerHTML = `Expiration: <strong>${selectedTimeframe}</strong> (Vente)<br>Structure baissière confirmée`;
             signalCard.style.borderColor = 'rgba(255, 51, 102, 0.3)';
+
+            telegramMessage += `🔴 <b>SIGNAL : PUT (BAISSE) ⬇️</b>\n`;
+            telegramMessage += `⏱️ <b>Expiration</b> : ${selectedTimeframe}\n\n`;
+            telegramMessage += `🎯 <i>Indicateurs : Rejet de la moyenne mobile et accélération MACD.</i>`;
+
         } else {
             iconNeutral.style.display = 'block';
             signalText.className = "signal-text status-neutral";
             signalText.innerHTML = "NO SIGNAL";
             signalDesc.innerHTML = "Marché trop instable, attendez la prochaine bougie.";
             signalCard.style.borderColor = '#232d4e';
+
+            telegramMessage += `🚫 <b>PAS DE SIGNAL TRADING</b>\n\n`;
+            telegramMessage += `⚠️ <i>Le marché présente de fausses cassures. Risque élevé, restez à l'écart.</i>`;
         }
+
+        // Envoi automatique vers Telegram en même temps !
+        sendTelegramSignal(telegramMessage);
     }
 </script>
 
 </body>
-  </html>
+</html>
