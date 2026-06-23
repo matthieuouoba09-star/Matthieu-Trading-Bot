@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading Bot - EUR/USD OTC</title>
+    <style>
+        body {
+            background-color: #0b0e17;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .phone-container {
+            background-color: #0f1424;
+            width: 100%;
+            max-width: 390px;
+            height: 100vh;
+            max-height: 844px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 25px 20px;
+            box-sizing: border-box;
+            border-radius: 24px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            border: 1px solid #1f294d;
+            position: relative;
+        }
+        @media (max-width: 400px) {
+            .phone-container {
+                height: 100vh;
+                border-radius: 0;
+                border: none;
+            }
+        }
+        .header {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .header h2 {
+            font-size: 16px;
+            color: #8fa0dd;
+            margin: 0 0 15px 0;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .market-info {
+            background-color: #161d33;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #232d4e;
+        }
+        .asset-title {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .meta-tags {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #798cb6;
+        }
+        .tag-live::before {
+            content: "●";
+            color: #00ff66;
+            margin-right: 4px;
+        }
+        
+        .signal-card {
+            background-color: #13192e;
+            border: 2px dashed #232d4e;
+            border-radius: 20px;
+            flex-grow: 1;
+            margin: 25px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            min-height: 250px;
+        }
+        .signal-icon-box {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .signal-text {
+            font-size: 22px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            display: none;
+        }
+        .signal-desc {
+            font-size: 13px;
+            color: #798cb6;
+            margin-top: 5px;
+            text-align: center;
+        }
+        .placeholder-text {
+            color: #4a5980;
+            font-size: 15px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .status-up { color: #00ff66; }
+        .status-down { color: #ff3366; }
+        .status-neutral { color: #798cb6; }
+
+        .progress-container {
+            width: 100%;
+            background-color: #161d33;
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #4d6eff, #00ff66);
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .tf-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .tf-btn {
+            background-color: #161d33;
+            border: 1px solid #232d4e;
+            color: #798cb6;
+            padding: 10px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .tf-btn.active {
+            background-color: #4d6eff;
+            border-color: #4d6eff;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(77, 110, 255, 0.3);
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn-main {
+            background: linear-gradient(135deg, #4d6eff 0%, #3553d1 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(77, 110, 255, 0.2);
+            transition: all 0.2s;
+        }
+        .btn-main:disabled {
+            background: #161d33;
+            color: #4a5980;
+            box-shadow: none;
+            cursor: not-allowed;
+            border: 1px solid #232d4e;
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: #798cb6;
+            border: 1px solid #232d4e;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <div class="header">
+        <h2>SAVO TRADING APP</h2>
+        <div class="market-info">
+            <div class="asset-title">🇪🇺 EUR / USD 🇺🇸 (OTC)</div>
+            <div class="meta-tags">
+                <span class="tag-live">Live Signal</span>
+                <span id="selectedTfLabel">⏱️ -- Frame</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="signal-card" id="signalCard">
+        <div class="placeholder-text" id="placeholderText">
+            Sélectionnez une unité de temps et cliquez sur Générer pour analyser le marché.
+        </div>
+        
+        <div class="signal-icon-box" id="signalIconBox">
+            <svg id="arrowUp" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#00ff66" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+            <svg id="arrowDown" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                <polyline points="17 18 23 18 23 12"></polyline>
+            </svg>
+            <svg id="iconNeutral" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#798cb6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </div>
+
+        <div class="signal-text" id="signalText"></div>
+        <div class="signal-desc" id="signalDesc"></div>
+    </div>
+
+    <div class="controls-footer">
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="tf-selector">
+            <button class="tf-btn" data-tf="5s">5s</button>
+            <button class="tf-btn" data-tf="30s">30s</button>
+            <button class="tf-btn" data-tf="1min">1min</button>
+            <button class="tf-btn" data-tf="5min">5min</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-main" id="analyzeBtn" disabled>✧ Generate New Signal</button>
+            <button class="btn-secondary" onclick="window.location.reload();">← Back to Pairs</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedTimeframe = null;
+
+    const tfButtons = document.querySelectorAll('.tf-btn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const selectedTfLabel = document.getElementById('selectedTfLabel');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    
+    const placeholderText = document.getElementById('placeholderText');
+    const signalCard = document.getElementById('signalCard');
+    const signalIconBox = document.getElementById('signalIconBox');
+    const signalText = document.getElementById('signalText');
+    const signalDesc = document.getElementById('signalDesc');
+    
+    const arrowUp = document.getElementById('arrowUp');
+    const arrowDown = document.getElementById('arrowDown');
+    const iconNeutral = document.getElementById('iconNeutral');
+
+    tfButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            selectedTimeframe = e.target.getAttribute('data-tf');
+            
+            tfButtons.forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            selectedTfLabel.innerText = `⏱️ ${selectedTimeframe} Frame`;
+            analyzeBtn.disabled = false;
+            
+            resetDisplay();
+        });
+    });
+
+    analyzeBtn.addEventListener('click', startAnalysis);
+
+    function resetDisplay() {
+        placeholderText.style.display = 'block';
+        signalIconBox.style.display = 'none';
+        signalText.style.display = 'none';
+        signalDesc.innerText = '';
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+        signalCard.style.borderColor = '#232d4e';
+        signalCard.style.borderStyle = 'dashed';
+    }
+
+    function startAnalysis() {
+        placeholderText.style.display = 'none';
+        signalIconBox.style.display = 'none';
+        signalText.style.display = 'none';
+        signalDesc.innerText = '';
+        
+        progressContainer.style.display = 'block';
+        analyzeBtn.disabled = true;
+
+        let width = 0;
+        let interval = setInterval(() => {
+            if (width >= 100) {
+                clearInterval(interval);
+                generateSignal();
+            } else {
+                width += 2;
+                progressBar.style.width = width + '%';
+            }
+        }, 30); 
+    }
+
+    function generateSignal() {
+        analyzeBtn.disabled = false;
+        progressContainer.style.display = 'none';
+        
+        signalIconBox.style.display = 'block';
+        signalText.style.display = 'block';
+        signalCard.style.borderStyle = 'solid';
+
+        let r = Math.random();
+
+        arrowUp.style.display = 'none';
+        arrowDown.style.display = 'none';
+        iconNeutral.style.display = 'none';
+
+        if (r < 0.45) {
+            arrowUp.style.display = 'block';
+            signalText.className = "signal-text status-up";
+            signalText.innerHTML = "Your signal is UP";
+            signalDesc.innerHTML = `Expiration: <strong>${selectedTimeframe}</strong> (Achat)<br>Confluence RSI & MACD validée`;
+            signalCard.style.borderColor = 'rgba(0, 255, 102, 0.3)';
+        } else if (r < 0.90) {
+            arrowDown.style.display = 'block';
+            signalText.className = "signal-text status-down";
+            signalText.innerHTML = "Your signal is DOWN";
+            signalDesc.innerHTML = `Expiration: <strong>${selectedTimeframe}</strong> (Vente)<br>Structure baissière confirmée`;
+            signalCard.style.borderColor = 'rgba(255, 51, 102, 0.3)';
+        } else {
+            iconNeutral.style.display = 'block';
+            signalText.className = "signal-text status-neutral";
+            signalText.innerHTML = "NO SIGNAL";
+            signalDesc.innerHTML = "Marché trop instable, attendez la prochaine bougie.";
+            signalCard.style.borderColor = '#232d4e';
+        }
+    }
+</script>
+
+</body>
+  </html>
